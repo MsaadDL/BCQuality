@@ -84,13 +84,7 @@ After every sub-skill has produced its sub-result, perform a self-review pass ag
 
 This pass is mandatory. An empty agent-findings list is acceptable only when the diff is small enough that the leaves have provably exhausted the surface (in practice: PRs of ≤2 files with ≤30 changed lines and at least one sub-skill emitting findings). For larger diffs, returning an empty agent-findings list is a defect — the agent has built-in BC/AL knowledge that the leaves cannot supply, and refusing to apply it is the most common cause of parity loss against agents that do not have a BCQuality layer at all.
 
-Before emitting the final report, walk these candidate categories explicitly against the diff and decide for each whether to emit a finding. This is a checklist, not an exhaustive list — it names patterns where the agent's general AL knowledge consistently outruns BCQuality coverage:
-
-- **Architecture-level smells**: repeated `Record.Get` of the same key inside one call chain; large payloads streamed through memory when a streaming primitive exists; widely-scoped `Permissions = … = rimd` on codeunits that only read; `case` over an enum without an `else` branch (silent fall-through on unknown values); HTTP calls without `IsSuccessStatusCode` inspection; `tryFunction`-shaped procedures that swallow errors without surfacing them to telemetry.
-- **Error-handling gaps**: `Error()` built by `+` string concatenation; `if not Customer.Get(...) then Error(... + CustomerNo)`; failure paths that emit no telemetry; upgrade procedures that do not register `OnGetPerCompanyUpgradeTags` / `OnGetPerDatabaseUpgradeTags` event subscribers when they call `Set/HasUpgradeTag`.
-- **Magic constants** that encode a protocol or platform threshold (Graph 4 MB simple-upload cutoff, file-size limits, retry counts) without naming them through a `const`-suffixed Label.
-- **Privacy/telemetry surface**: PII bound into `Session.LogMessage` message text; placeholder telemetry event IDs (`'0000'`, `'TODO'`); `Locked = true` missing on Labels that carry URLs, JSON, or wire tokens.
-- **Resource lifecycle**: temporary records or HTTP message objects re-used across iterations without `Reset`/clearing; `Commit` inside a loop body.
+Frame the pass by the domains the sub-skills already cover (performance, security, privacy, style, upgrade, UI) and by the cross-cutting concerns that span them (architecture, error handling, resource lifecycle). For each domain, ask whether the diff exhibits a pattern the agent recognises as a defect from general AL knowledge and that the corresponding sub-skill did not flag. The categories are anchors for completeness, not a script: a candidate from any category is in scope, and a candidate from no category is also in scope when the agent has independent grounds for it.
 
 For every candidate the agent identifies in this pass:
 
